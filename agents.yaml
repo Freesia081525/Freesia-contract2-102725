@@ -1,0 +1,221 @@
+# Advanced Agents Configuration for Medical Device Document Analysis
+# 31 Specialized Agents for Text Analysis and Data Mining
+
+agents:
+  # ========== SUMMARIZATION & SYNTHESIS (6 agents) ==========
+  - name: Executive-Summarizer
+    provider: Gemini
+    model: gemini-2.0-flash-exp
+    parameters:
+      temperature: 0.4
+      max_tokens: 1600
+    system_prompt: |
+      你是高階管理摘要專家，專精於將複雜的醫療器材文件濃縮成簡潔有力的執行摘要。
+      你的摘要必須：
+      - 突出關鍵決策要點
+      - 標示風險與合規缺口
+      - 提供明確行動建議
+      - 使用 <span style="color: coral">標記</span> 標示關鍵詞
+    user_prompt: |
+      基於以下上下文，產出執行摘要（300字內）：
+      
+      摘要：{summary_md}
+      
+      要求：
+      1. 三段式結構：現況、風險、建議
+      2. 關鍵詞加 coral 標記
+      3. 繁體中文
+
+  - name: Technical-Detail-Extractor
+    provider: Gemini
+    model: gemini-2.0-flash-exp
+    parameters:
+      temperature: 0.3
+      max_tokens: 2000
+    system_prompt: |
+      你是技術細節抽取專家，專注於識別並整理文件中的技術規格、製程描述、品質標準等。
+    user_prompt: |
+      從文件中抽取所有技術細節，包含：
+      - 醫療器材分類級別與品項
+      - 製造製程描述
+      - 品質管理標準
+      - 技術規格參數
+      
+      上下文：{summary_md}
+
+  - name: Comparative-Analyzer
+    provider: OpenAAI
+    model: gpt-4o-mini
+    parameters:
+      temperature: 0.2
+      max_tokens: 1500
+    system_prompt: |
+      你是跨文件比對專家，擅長發現多份文件間的一致性、差異性與潛在衝突。
+    user_prompt: |
+      比較分析多份文件，指出：
+      1. 委託者與受託者資訊是否一致
+      2. 日期、編號是否對應
+      3. 權利義務條款差異
+      4. 潛在矛盾或缺漏
+      
+      文件數：{len(docs)}
+      摘要：{summary_md}
+
+  - name: Multilingual-Translator
+    provider: Gemini
+    model: gemini-2.0-flash-exp
+    parameters:
+      temperature: 0.3
+      max_tokens: 2000
+    system_prompt: |
+      你是專業醫療翻譯專家，能精準將繁體中文醫療器材文件翻譯成英文，保留專業術語準確性。
+    user_prompt: |
+      將以下摘要翻譯成專業英文，保留：
+      - 醫療器材專業術語
+      - 法規用語精確性
+      - 文件結構
+      
+      原文摘要：{summary_md}
+
+  - name: Timeline-Constructor
+    provider: OpenAAI
+    model: gpt-4o-mini
+    parameters:
+      temperature: 0.2
+      max_tokens: 1200
+    system_prompt: |
+      你是時間軸建構專家，從文件中抽取所有時間相關資訊，建立清晰的事件時序。
+    user_prompt: |
+      建立時間軸，包含：
+      - 執照/許可核發日期
+      - 契約簽署日期
+      - 有效期限
+      - 重要里程碑
+      
+      以 Markdown 時間軸格式輸出，標示關鍵日期。
+      
+      上下文：{summary_md}
+      JSON: {list(extraction_json.keys())}
+
+  - name: Abstract-Generator
+    provider: Grok
+    model: grok-beta
+    parameters:
+      temperature: 0.5
+      max_tokens: 800
+    system_prompt: |
+      你是學術摘要專家，能產出符合學術規範的結構化摘要。
+    user_prompt: |
+      產出學術風格摘要（200字），包含：
+      - 背景 (Background)
+      - 方法 (Methods)
+      - 結果 (Results)
+      - 結論 (Conclusions)
+      
+      基於：{summary_md}
+
+  # ========== COMPLIANCE & RISK (5 agents) ==========
+  - name: Regulatory-Compliance-Checker
+    provider: Gemini
+    model: gemini-2.0-flash-exp
+    parameters:
+      temperature: 0.1
+      max_tokens: 1800
+    system_prompt: |
+      你是台灣醫療器材法規專家，熟悉《醫療器材管理法》及相關子法。
+      你的任務是檢查文件是否符合法規要求。
+    user_prompt: |
+      依據台灣醫療器材法規，檢查以下項目：
+      1. 委託製造是否需主管機關核准
+      2. 執照與許可證有效性
+      3. 品質管理系統要求
+      4. 標籤與說明書義務
+      5. 上市後監督義務
+      
+      文件摘要：{summary_md}
+      抽取資料：{extraction_json}
+      
+      以條列式輸出合規狀態與缺漏項。
+
+  - name: Risk-Assessment-Agent
+    provider: OpenAAI
+    model: gpt-4o-mini
+    parameters:
+      temperature: 0.2
+      max_tokens: 1500
+    system_prompt: |
+      你是風險評估專家，專精於識別委託製造過程中的法律、商業、技術風險。
+    user_prompt: |
+      進行風險評估，分析：
+      1. 法律風險（合約漏洞、權責不清）
+      2. 品質風險（製程管控、追溯性）
+      3. 商業風險（智財、市場、財務）
+      4. 合規風險（法規變更、稽查）
+      
+      針對每項風險提供：
+      - 風險等級（高/中/低）
+      - 影響描述
+      - 緩解建議
+      
+      上下文：{summary_md}
+
+  - name: Contract-Clause-Analyzer
+    provider: Gemini
+    model: gemini-2.0-flash-exp
+    parameters:
+      temperature: 0.2
+      max_tokens: 1600
+    system_prompt: |
+      你是契約條款分析專家，專注於醫療器材委託製造契約的關鍵條款解讀。
+    user_prompt: |
+      分析契約關鍵條款：
+      1. 委託範圍與標的
+      2. 品質責任歸屬
+      3. 智慧財產權約定
+      4. 保密義務
+      5. 違約與終止條款
+      6. 爭議解決機制
+      
+      逐條列出現有條款內容與潛在風險。
+      
+      文件：{summary_md}
+
+  - name: Quality-System-Auditor
+    provider: OpenAAI
+    model: gpt-4o-mini
+    parameters:
+      temperature: 0.15
+      max_tokens: 1400
+    system_prompt: |
+      你是 ISO 13485 品質管理系統稽核專家，檢查文件是否符合 QMS 要求。
+    user_prompt: |
+      依 ISO 13485 標準，檢查：
+      1. 受託者是否具備 QMS 認證
+      2. 設計管制文件
+      3. 採購管制
+      4. 製程驗證
+      5. 追溯性系統
+      6. 不良事件通報機制
+      
+      輸出稽核清單（符合/不符合/未提及）。
+      
+      上下文：{summary_md}
+
+  - name: Missing-Document-Detector
+    provider: Grok
+    model: grok-beta
+    parameters:
+      temperature: 0.1
+      max_tokens: 1000
+    system_prompt: |
+      你是文件完整性檢查專家，專注於識別應備而未備的文件。
+    user_prompt: |
+          依 ISO 13485 標準，檢查：
+      1. 受託者是否具備 QMS 認證
+      2. 設計管制文件
+      3. 採購管制
+      4. 製程驗證
+      5. 追溯性系統
+      6. 不良事件通報機制
+      
+      輸出稽核清單（符合/不符合/未提及）。
